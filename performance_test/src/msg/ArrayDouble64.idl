@@ -1,0 +1,15 @@
+// generated manually 
+
+
+module performance_test {
+  module msg {
+    typedef double double__64[64];
+    struct ArrayDouble64 {
+      double__64 array;
+
+      int64 time;
+
+      uint64 id;
+    };
+  };
+};

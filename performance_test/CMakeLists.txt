@@ -135,6 +135,8 @@ else()
 endif()
 
 rosidl_generate_interfaces(${PROJECT_NAME}
+    "${CMAKE_CURRENT_SOURCE_DIR}/src:msg/ArrayDouble64.${MESSAGE_FILE_EXTENSION}"
+
     "${CMAKE_CURRENT_SOURCE_DIR}/src:msg/Array1k.${MESSAGE_FILE_EXTENSION}"
     "${CMAKE_CURRENT_SOURCE_DIR}/src:msg/Array4k.${MESSAGE_FILE_EXTENSION}"
     "${CMAKE_CURRENT_SOURCE_DIR}/src:msg/Array16k.${MESSAGE_FILE_EXTENSION}"

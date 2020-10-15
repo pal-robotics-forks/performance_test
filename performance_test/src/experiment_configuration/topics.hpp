@@ -22,6 +22,8 @@
 #include <performance_test/for_each.hpp>
 
 // ROS2 2 types:
+#include <performance_test/msg/array_double64.hpp>
+
 #include <performance_test/msg/array1k.hpp>
 #include <performance_test/msg/array4k.hpp>
 #include <performance_test/msg/array16k.hpp>
@@ -176,7 +178,17 @@ namespace performance_test
 
 namespace topics
 {
+class ArrayDouble64
+{
+public:
+  using RosType = performance_test::msg::ArrayDouble64;
 
+
+  static std::string topic_name()
+  {
+    return std::string("ArrayDouble64");
+  }
+};
 ///  \cond
 class Array1k
 {
@@ -1038,7 +1050,7 @@ public:
 };
 ///  \endcond
 
-using TopicTypeList = std::tuple<Array1k, Array4k, Array16k, Array32k, Array60k, Array1m,
+using TopicTypeList = std::tuple<ArrayDouble64, Array1k, Array4k, Array16k, Array32k, Array60k, Array1m,
     Array2m, Array4m, Array8m,
     Struct16, Struct256, Struct4k, Struct32k,
     PointCloud512k, PointCloud1m, PointCloud2m, PointCloud4m, PointCloud8m,
