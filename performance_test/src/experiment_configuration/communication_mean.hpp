@@ -23,7 +23,8 @@ namespace performance_test
  */
 enum class CommunicationMean
 {
-  ROS2
+  ROS2,
+  ROS2PALPollingSubscription
 #ifdef PERFORMANCE_TEST_POLLING_SUBSCRIPTION_ENABLED
   , ROS2PollingSubscription
 #endif
@@ -48,6 +49,8 @@ inline std::ostream & operator<<(std::ostream & stream, const CommunicationMean 
 {
   if (cm == CommunicationMean::ROS2) {
     return stream << "ROS2";
+  } else if (cm == CommunicationMean::ROS2PALPollingSubscription) {
+    return stream << "ROS2PALPollingSubscription";
 #ifdef PERFORMANCE_TEST_POLLING_SUBSCRIPTION_ENABLED
   } else if (cm == CommunicationMean::ROS2PollingSubscription) {
     return stream << "ROS2PollingSubscription";

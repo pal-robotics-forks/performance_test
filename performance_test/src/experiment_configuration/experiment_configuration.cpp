@@ -77,7 +77,7 @@ void ExperimentConfiguration::setup(int argc, char ** argv)
     "The rate data should be published. Defaults to 1000 Hz. 0 means publish as fast as possible.")(
     "communication,c", po::value<std::string>()->required(),
     "Communication plugin to use (ROS2, FastRTPS, ConnextDDSMicro, CycloneDDS, OpenDDS, "
-    "ROS2PollingSubscription)")(
+    "ROS2PALPollingSubscription, ROS2PollingSubscription)")(
     "topic,t",
     po::value<std::string>()->required(),
     "Topic to use. Use --topic_list to get a list.")("topic_list",
@@ -170,7 +170,12 @@ void ExperimentConfiguration::setup(int argc, char ** argv)
       #ifdef PERFORMANCE_TEST_ODB_FOR_SQL_ENABLED
       m_com_mean_str = "ROS2";
       #endif
-    } else if (vm["communication"].as<std::string>() == "ROS2PollingSubscription") {
+    }else if (vm["communication"].as<std::string>() == "ROS2PALPollingSubscription") {
+      m_com_mean = CommunicationMean::ROS2PALPollingSubscription;
+#ifdef PERFORMANCE_TEST_ODB_FOR_SQL_ENABLED
+      m_com_mean_str = "ROS2PollingSubscription";
+#endif
+    }else if (vm["communication"].as<std::string>() == "ROS2PollingSubscription") {
 #ifdef PERFORMANCE_TEST_POLLING_SUBSCRIPTION_ENABLED
       m_com_mean = CommunicationMean::ROS2PollingSubscription;
       #ifdef PERFORMANCE_TEST_ODB_FOR_SQL_ENABLED
