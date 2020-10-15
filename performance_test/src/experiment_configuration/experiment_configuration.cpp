@@ -116,6 +116,7 @@ void ExperimentConfiguration::setup(int argc, char ** argv)
     "wait_for_matched")("wait_for_matched_timeout",
     po::value<uint32_t>()->default_value(30),
     "Maximum time[s] to wait for matching publishers/subscribers. Defaults to 30s")
+    ("sequential_pub_sub", "Publish and subscribe on same thread")
 #ifdef PERFORMANCE_TEST_ODB_FOR_SQL_ENABLED
   ("db_name", po::value<std::string>()->default_value("db_name"),
   "Name of the SQL database.")
@@ -254,6 +255,7 @@ void ExperimentConfiguration::setup(int argc, char ** argv)
       }
       m_qos.sync_pubsub = true;
     }
+    m_sequential = vm.count("sequential_pub_sub");
 
     m_max_runtime = vm["max_runtime"].as<uint64_t>();
     m_rows_to_ignore = vm["ignore"].as<uint32_t>();
@@ -447,6 +449,11 @@ uint32_t ExperimentConfiguration::expected_num_subs() const
 {
   check_setup();
   return m_expected_num_subs;
+}
+bool ExperimentConfiguration::sequential() const
+{
+  check_setup();
+  return m_sequential;
 }
 
 std::chrono::seconds ExperimentConfiguration::expected_wait_for_matched_timeout() const

@@ -20,7 +20,9 @@
 #include <osrf_testing_tools_cpp/memory_tools/memory_tools.hpp>
 #endif
 #include <atomic>
+#include <condition_variable>
 #include <memory>
+#include <mutex>
 #include <thread>
 
 #if defined(QNX)
@@ -146,9 +148,19 @@ private:
     auto first_run = std::chrono::steady_clock::now();
 
     std::size_t loop_counter = 1;
+    static std::mutex mutex;
+    static std::condition_variable cvar;
 
     while (m_run) {
-      if (m_run_type == RunType::PUBLISHER &&
+      auto begin = std::chrono::steady_clock::now();
+      {
+        std::unique_lock<std::mutex> guard(mutex, std::defer_lock);
+        if (m_ec.sequential())
+        {
+          // Just lock in sequential
+          guard.lock();
+        }
+        if (m_run_type == RunType::PUBLISHER &&
         m_ec.roundtrip_mode() != ExperimentConfiguration::RoundTripMode::RELAY)
       {
 #if defined(QNX)
@@ -157,22 +169,33 @@ private:
 #endif
         std::chrono::nanoseconds epoc_time =
           std::chrono::steady_clock::now().time_since_epoch();
+        begin = std::chrono::steady_clock::now();
         m_com.publish(*data, epoc_time);
+        cvar.notify_one();
       }
       if (m_run_type == RunType::SUBSCRIBER) {
+        if (m_ec.sequential())
+        {
+          cvar.wait(guard);
+        }
+        // We only want time to count from here
+        begin = std::chrono::steady_clock::now();
         m_com.update_subscription();
       }
+      }
       const std::chrono::nanoseconds reserve = next_run - std::chrono::steady_clock::now();
+      const std::chrono::nanoseconds used_time = std::chrono::steady_clock::now() - begin;
       {
         // We track here how much time (can also be negative) was left for the loop iteration given
         // the desired loop rate.
-        m_lock.lock();
         if (m_run_type == RunType::PUBLISHER) {
-          m_time_reserve_statistics.add_sample(std::chrono::duration<double>(reserve).count());
+//          m_time_reserve_statistics.add_sample(std::chrono::duration<double>(reserve).count());
+            m_time_reserve_statistics.add_sample(std::chrono::duration<double>(used_time).count());
+
         } else {
-          m_time_reserve_statistics.add_sample(0.0);
+//          m_time_reserve_statistics.add_sample(0.0);
+            m_time_reserve_statistics.add_sample(std::chrono::duration<double>(used_time).count());
         }
-        m_lock.unlock();
       }
       if (m_ec.rate() > 0 &&
         m_run_type == RunType::PUBLISHER &&
