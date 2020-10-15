@@ -49,6 +49,7 @@ find_package(rtt_ros2 REQUIRED)
 find_package(builtin_interfaces REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
+find_package(Boost COMPONENTS program_options timer REQUIRED)
 
 rtt_ros2_use_orocos()
 
