@@ -38,16 +38,21 @@ option(PERFORMANCE_TEST_RT_ENABLED
 
 find_package(rclcpp REQUIRED)
 find_package(rmw REQUIRED)
+find_package(rt_loss_detector REQUIRED)
 find_package(builtin_interfaces REQUIRED)
 
 find_package(rcutils REQUIRED)
 find_package(ament_cmake REQUIRED)
 find_package(builtin_interfaces REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
+find_package(rtt_ros2 REQUIRED)
 find_package(builtin_interfaces REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 
+rtt_ros2_use_orocos()
+
+include_directories(${OROCOS-RTT_INCLUDE_DIRS})
 find_package(osrf_testing_tools_cpp QUIET)
 if(${osrf_testing_tools_cpp_FOUND})
     list(APPEND OPTIONAL_AMENT_DEPENDENCES "osrf_testing_tools_cpp")
@@ -285,7 +290,7 @@ add_definitions(-DPERFORMANCE_TEST_VERSION="${PERF_TEST_VERSION}")
 rosidl_target_interfaces(${EXE_NAME} ${PROJECT_NAME} "rosidl_typesupport_cpp")
 
 ament_target_dependencies(${EXE_NAME}
-    "rclcpp" ${OPTIONAL_AMENT_DEPENDENCES})
+    "rclcpp" "rt_loss_detector" "rtt_ros2" ${OPTIONAL_AMENT_DEPENDENCES})
 
 target_link_libraries(${EXE_NAME}
     ${Boost_LIBRARIES}
