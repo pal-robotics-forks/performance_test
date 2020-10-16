@@ -24,12 +24,12 @@
 #include <memory>
 #include <mutex>
 #include <thread>
-
+#include <rclcpp/allocator/allocator_common.hpp>
 #if defined(QNX)
 #include <sys/neutrino.h>
 #include <inttypes.h>
 #endif
-
+#include "../communication_abstractions/resource_manager.hpp"
 #include "../utilities/spin_lock.hpp"
 
 namespace performance_test
@@ -139,6 +139,17 @@ private:
   /// The function running inside the thread doing all the work.
   void thread_function()
   {
+
+    using MessageAllocTraits =
+      rclcpp::allocator::AllocRebind<typename TCommunicator::DataType, TLSFAllocator<void>>;
+    using MessageAlloc = typename MessageAllocTraits::allocator_type;
+    using MessageDeleter = rclcpp::allocator::Deleter<MessageAlloc, typename TCommunicator::DataType>;
+    using MessageUniquePtr = std::unique_ptr<typename TCommunicator::DataType, MessageDeleter>;
+    MessageDeleter message_deleter;
+    MessageAlloc message_alloc = *ResourceManager::get().get_allocator();
+    rclcpp::allocator::set_allocator_for_deleter(&message_deleter, &message_alloc);
+
+
     auto next_run = std::chrono::steady_clock::now() +
       std::chrono::duration_cast<std::chrono::nanoseconds>(
       std::chrono::duration<double>(1.0 / m_ec.rate()));
@@ -151,7 +162,10 @@ private:
     static std::atomic<bool> msg_check{false};
     msg_check = false;
     while (m_run) {
-      auto data = std::make_unique<typename TCommunicator::DataType>();
+//      auto data = std::make_unique<typename TCommunicator::DataType>();
+      auto ptr = MessageAllocTraits::allocate(message_alloc, 1);
+      MessageAllocTraits::construct(message_alloc, ptr);
+      MessageUniquePtr data(ptr, message_deleter);
       auto begin = std::chrono::steady_clock::now();
       {
 //        std::unique_lock<std::mutex> guard(mutex, std::defer_lock);

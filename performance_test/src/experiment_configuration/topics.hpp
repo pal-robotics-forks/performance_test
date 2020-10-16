@@ -172,7 +172,8 @@
 #include <string>
 #include <tuple>
 #include <vector>
-
+#include "../communication_abstractions/resource_manager.hpp"
+#include <std_msgs/msg/int64.hpp>
 namespace performance_test
 {
 
@@ -182,6 +183,11 @@ class ArrayDouble64
 {
 public:
   using RosType = performance_test::msg::ArrayDouble64;
+  using MessageAllocTraits =
+    rclcpp::allocator::AllocRebind<RosType, TLSFAllocator<void>>;
+  using MessageAlloc = typename MessageAllocTraits::allocator_type;
+  using MessageDeleter = rclcpp::allocator::Deleter<MessageAlloc,  RosType>;
+  using MessageUniquePtr = std::unique_ptr<RosType, MessageDeleter>;
 
 
   static std::string topic_name()

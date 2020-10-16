@@ -27,6 +27,18 @@
 #include "communicator.hpp"
 #include "resource_manager.hpp"
 
+
+#include <tlsf_cpp/tlsf.hpp>
+#include <rclcpp/strategies/message_pool_memory_strategy.hpp>
+#include <rclcpp/strategies/allocator_memory_strategy.hpp>
+
+using rclcpp::strategies::message_pool_memory_strategy::MessagePoolMemoryStrategy;
+using rclcpp::memory_strategies::allocator_memory_strategy::AllocatorMemoryStrategy;
+
+// https://index.ros.org/doc/ros2/Tutorials/Allocator-Template-Tutorial/
+template<typename T = void>
+using TLSFAllocator = tlsf_heap_allocator<T>;
+
 namespace performance_test
 {
 
@@ -87,6 +99,7 @@ public:
   /// Constructor which takes a reference \param lock to the lock to use.
   explicit ROS2Communicator(SpinLock & lock)
   : Communicator(lock),
+    m_alloc(std::make_shared<TLSFAllocator<void>>()),
     m_node(ResourceManager::get().ros2_node()),
     m_ROS2QOSAdapter(ROS2QOSAdapter(m_ec.qos()).get()),
     m_data_copy(std::make_unique<DataType>()) {}
@@ -100,10 +113,11 @@ public:
    * \param data The data to publish.
    * \param time The time to fill into the data field.
    */
-  void publish(std::unique_ptr<DataType> data, const std::chrono::nanoseconds time)
+  void publish(typename Topic::MessageUniquePtr data, const std::chrono::nanoseconds time)
   {
     if (!m_publisher) {
-      auto options = rclcpp::PublisherOptions();
+      auto options = rclcpp::PublisherOptionsWithAllocator<TLSFAllocator<void>>();
+      options.allocator = m_alloc;
       if (m_ec.intraprocess())
       {
         options.use_intra_process_comm = rclcpp::IntraProcessSetting::Enable;
@@ -139,6 +153,7 @@ public:
   }
 
 protected:
+  std::shared_ptr<TLSFAllocator<void>> m_alloc;
   std::shared_ptr<rclcpp::Node> m_node;
   rclcpp::QoS m_ROS2QOSAdapter;
   /**
@@ -150,7 +165,7 @@ protected:
    *
    * \param data The data received.
    */
-  void callback(typename DataType::UniquePtr data)
+  void callback(typename Topic::MessageUniquePtr data)
   {
     const std::lock_guard<decltype(this->get_lock())> lockg(this->get_lock());
 //    static_assert(std::is_same<DataType,
@@ -175,7 +190,7 @@ protected:
   }
 
 private:
-  std::shared_ptr<::rclcpp::Publisher<DataType>> m_publisher;
+  std::shared_ptr<::rclcpp::Publisher<DataType, TLSFAllocator<void>>> m_publisher;
   std::unique_ptr<DataType> m_data_copy;
 };
 }  // namespace performance_test

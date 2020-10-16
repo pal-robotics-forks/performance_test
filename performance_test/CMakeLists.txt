@@ -44,6 +44,7 @@ find_package(builtin_interfaces REQUIRED)
 find_package(rcutils REQUIRED)
 find_package(ament_cmake REQUIRED)
 find_package(builtin_interfaces REQUIRED)
+find_package(tlsf_cpp)
 find_package(rosidl_default_generators REQUIRED)
 find_package(rtt_ros2 REQUIRED)
 find_package(builtin_interfaces REQUIRED)
@@ -291,7 +292,7 @@ add_definitions(-DPERFORMANCE_TEST_VERSION="${PERF_TEST_VERSION}")
 rosidl_target_interfaces(${EXE_NAME} ${PROJECT_NAME} "rosidl_typesupport_cpp")
 
 ament_target_dependencies(${EXE_NAME}
-    "rclcpp" "rt_loss_detector" "rtt_ros2" ${OPTIONAL_AMENT_DEPENDENCES})
+    "rclcpp" "rt_loss_detector" "rtt_ros2" "tlsf_cpp" ${OPTIONAL_AMENT_DEPENDENCES})
 
 target_link_libraries(${EXE_NAME}
     ${Boost_LIBRARIES}

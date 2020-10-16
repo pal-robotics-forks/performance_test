@@ -40,21 +40,32 @@ public:
   : ROS2Communicator<Topic>(lock),
     m_subscription(nullptr)
   {
-    m_executor.add_node(this->m_node);
+    rclcpp::ExecutorOptions options;
+    options.memory_strategy = std::make_shared<AllocatorMemoryStrategy<TLSFAllocator<void>>>(this->m_alloc);
+    m_executor = std::make_unique<rclcpp::executors::SingleThreadedExecutor>(options);
+    m_executor->add_node(this->m_node);
+
   }
 
   /// Reads received data from ROS 2 using callbacks
   void update_subscription() override
   {
     if (!m_subscription) {
-      auto options = rclcpp::SubscriptionOptions();
+      auto options = rclcpp::SubscriptionOptionsWithAllocator<TLSFAllocator<void>>();
+//      auto options = rclcpp::SubscriptionOptions();
       if (this->m_ec.intraprocess())
       {
         options.use_intra_process_comm = rclcpp::IntraProcessSetting::Enable;
       }
+
+      rclcpp::SubscriptionOptionsWithAllocator<TLSFAllocator<void>> subscription_options;
+      subscription_options.allocator = this->m_alloc;
+      auto msg_mem_strat = std::make_shared<
+        rclcpp::message_memory_strategy::MessageMemoryStrategy<
+          DataType, TLSFAllocator<void>>>(this->m_alloc);
       m_subscription = this->m_node->template create_subscription<DataType>(
         Topic::topic_name() + this->m_ec.sub_topic_postfix(), this->m_ROS2QOSAdapter,
-        [this](typename DataType::UniquePtr data) {this->callback(std::move(data));}, options);
+        [this](typename Topic::MessageUniquePtr data) {this->callback(std::move(data));}, subscription_options, msg_mem_strat);
 #ifdef PERFORMANCE_TEST_POLLING_SUBSCRIPTION_ENABLED
       if (this->m_ec.expected_num_pubs() > 0) {
         m_subscription->wait_for_matched(this->m_ec.expected_num_pubs(),
@@ -62,12 +73,13 @@ public:
       }
 #endif
     }
-    m_executor.spin_once(std::chrono::milliseconds(100));
+    m_executor->spin_once(std::chrono::milliseconds(100));
   }
 
 private:
-  rclcpp::executors::SingleThreadedExecutor m_executor;
-  std::shared_ptr<::rclcpp::Subscription<DataType>> m_subscription;
+  std::unique_ptr<rclcpp::executors::SingleThreadedExecutor> m_executor;
+  std::shared_ptr<::rclcpp::Subscription<DataType, TLSFAllocator<void>, rclcpp::message_memory_strategy::MessageMemoryStrategy<
+                                                                          DataType, TLSFAllocator<void>>>> m_subscription;
 };
 
 

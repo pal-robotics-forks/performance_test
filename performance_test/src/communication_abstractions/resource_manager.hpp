@@ -51,9 +51,13 @@
 
 #include "../experiment_configuration/experiment_configuration.hpp"
 
+#include <tlsf_cpp/tlsf.hpp>
+
 namespace performance_test
 {
 
+template<typename T = void>
+using TLSFAllocator = tlsf_heap_allocator<T>;
 /// Stores and manages global resources for the communication plugins.
 class ResourceManager
 {
@@ -74,6 +78,15 @@ public:
 
   /// Returns the ROS 2 node.
   std::shared_ptr<rclcpp::Node> ros2_node() const;
+
+  std::shared_ptr<TLSFAllocator<void>> get_allocator()
+  {
+    if (!m_allocator)
+    {
+      m_allocator = std::make_shared<TLSFAllocator<void>>();
+    }
+    return m_allocator;
+  }
 
 #ifdef PERFORMANCE_TEST_FASTRTPS_ENABLED
   /// Returns FastRTPS participant.
@@ -164,6 +177,7 @@ private:
 #endif
 
   mutable std::mutex m_global_mutex;
+  std::shared_ptr<TLSFAllocator<void>> m_allocator;
 };
 
 }  // namespace performance_test

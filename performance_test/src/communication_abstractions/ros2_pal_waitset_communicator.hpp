@@ -49,14 +49,22 @@ public:
   {
     bool use_intra = this->m_ec.intraprocess();
     if (!m_subscription) {
-      auto options = rclcpp::SubscriptionOptions();
+      auto options = rclcpp::SubscriptionOptionsWithAllocator<TLSFAllocator<void>>();
+//      auto options = rclcpp::SubscriptionOptions();
+      options.allocator = this->m_alloc;
       if (use_intra)
       {
-      options.use_intra_process_comm = rclcpp::IntraProcessSetting::Enable;
+        options.use_intra_process_comm = rclcpp::IntraProcessSetting::Enable;
       }
+
+      // The memory strategy holds 1 instance of messages to be reused
+//      auto memory_strategy =
+//        std::make_shared<MessagePoolMemoryStrategy<DataType, 1>>();
+      auto memory_strategy =
+        std::make_shared<rclcpp::message_memory_strategy::MessageMemoryStrategy<DataType, TLSFAllocator<void>>>(this->m_alloc);
       m_subscription = this->m_node->template create_subscription<DataType>(
         Topic::topic_name() + this->m_ec.sub_topic_postfix(), this->m_ROS2QOSAdapter,
-        [this](typename DataType::UniquePtr data) {this->callback(std::move(data));}, options);
+        [this](typename Topic::MessageUniquePtr data) {this->callback(std::move(data));}, options, memory_strategy);
 #ifdef PERFORMANCE_TEST_POLLING_SUBSCRIPTION_ENABLED
 
       if (this->m_ec.expected_num_pubs() > 0) {
@@ -77,7 +85,7 @@ public:
       }
       else
       {
-        typename DataType::UniquePtr msg(new DataType());
+        typename Topic::MessageUniquePtr msg(new DataType());
         bool success = m_subscription->take(*msg, msg_info);
         if (success) {
           this->template callback(std::move(msg));
@@ -87,7 +95,8 @@ public:
   }
 
 private:
-  std::shared_ptr<::rclcpp::Subscription<DataType>> m_subscription;
+  std::shared_ptr<::rclcpp::Subscription<DataType, TLSFAllocator<void>, rclcpp::message_memory_strategy::MessageMemoryStrategy<
+                                                                          DataType, TLSFAllocator<void>>>> m_subscription;
   std::unique_ptr<rclcpp::WaitSet> m_waitset;
 };
 
