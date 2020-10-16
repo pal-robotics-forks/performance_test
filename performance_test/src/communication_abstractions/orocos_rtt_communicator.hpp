@@ -48,6 +48,7 @@ public:
   template<class T>
   void callback(const T & data)
   {
+    const std::lock_guard<decltype(this->get_lock())> lockg(this->get_lock());
     static_assert(std::is_same<DataType,
                                typename std::remove_cv<typename std::remove_reference<T>::type>::type>::value,
                   "Parameter type passed to callback() does not match");
@@ -67,8 +68,7 @@ public:
     }
     increment_received();
   }
-
-  void publish(DataType & data, const std::chrono::nanoseconds time)
+  void publish(DataType& data, const std::chrono::nanoseconds time)
   {
     if (!m_output_port) {
       m_output_port = std::make_unique<RTT::OutputPort<DataType>>(Topic::topic_name() + "Output", true);
@@ -80,7 +80,10 @@ public:
     unlock();
     m_output_port->write(data);
   }
-
+  void publish(std::unique_ptr<DataType> data, const std::chrono::nanoseconds time)
+  {
+    publish(*data, time);
+  }
   void publish(const DataType & data, const std::chrono::nanoseconds time)
   {
     *m_data_copy = data;
@@ -104,7 +107,6 @@ public:
     }
     {
     DataType msg;
-    const std::lock_guard<decltype(this->get_lock())> lock(this->get_lock());
     bool success = m_input_port->read(msg);
       if (success) {
         this->template callback(msg);

@@ -122,6 +122,8 @@ public:
   uint32_t expected_num_subs() const;
   /// \returns Whether to run sequentially or in separate threads
   bool sequential() const;
+  /// \returns Whether to force intraprocess
+  bool intraprocess() const;
   /// \returns Returns the expected timeout for wait_for_matched if enabled. This
   /// will throw if the experiment configuration is not set up.
   std::chrono::seconds expected_wait_for_matched_timeout() const;
@@ -250,6 +252,8 @@ private:
   uint32_t m_number_of_publishers;
   uint32_t m_number_of_subscribers;
   bool m_sequential;
+  bool m_intraprocess;
+
 #ifdef PERFORMANCE_TEST_ODB_FOR_SQL_ENABLED
   #pragma db transient
 #endif

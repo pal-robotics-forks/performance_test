@@ -100,12 +100,18 @@ public:
    * \param data The data to publish.
    * \param time The time to fill into the data field.
    */
-  void publish(DataType & data, const std::chrono::nanoseconds time)
+  void publish(std::unique_ptr<DataType> data, const std::chrono::nanoseconds time)
   {
     if (!m_publisher) {
+      auto options = rclcpp::PublisherOptions();
+      if (m_ec.intraprocess())
+      {
+        options.use_intra_process_comm = rclcpp::IntraProcessSetting::Enable;
+      }
       auto ros2QOSAdapter = m_ROS2QOSAdapter;
       m_publisher = m_node->create_publisher<DataType>(
-        Topic::topic_name() + m_ec.pub_topic_postfix(), ros2QOSAdapter);
+        Topic::topic_name() + m_ec.pub_topic_postfix(), ros2QOSAdapter, options);
+
 #ifdef PERFORMANCE_TEST_POLLING_SUBSCRIPTION_ENABLED
       if (m_ec.expected_num_subs() > 0) {
         m_publisher->wait_for_matched(m_ec.expected_num_subs(),
@@ -115,30 +121,12 @@ public:
     }
     lock();
 #if !defined(QNX)
-    data.time = time.count();
+    data->time = time.count();
 #endif
-    data.id = next_sample_id();
+    data->id = next_sample_id();
     increment_sent();  // We increment before publishing so we don't have to lock twice.
     unlock();
-    m_publisher->publish(data);
-  }
-
-  /**
- * \brief Publishes the provided data.
- *
- *  This is an overloaded version of the publish function .
- *  We need this because this is triggered by ROS2 executor thread callback
- *  when the ExperimentConfiguration RoundTripMode is RELAY and the callback passes a
- *  const ref for the incoming data. We have to create a copy of the data to be able to
- *  update it inside the function before publishing.
- *
- * \param data The data to publish.
- * \param time The time to fill into the data field.
- */
-  void publish(const DataType & data, const std::chrono::nanoseconds time)
-  {
-    *m_data_copy = data;
-    publish(*m_data_copy, time);
+    m_publisher->publish(std::move(data));
   }
 
   /// Reads received data from ROS 2 using callbacks
@@ -162,30 +150,26 @@ protected:
    *
    * \param data The data received.
    */
-  void callback(const typename DataType::SharedPtr data)
+  void callback(typename DataType::UniquePtr data)
   {
-    callback(*data);
-  }
-
-  template<class T>
-  void callback(const T & data)
-  {
-    static_assert(std::is_same<DataType,
-      typename std::remove_cv<typename std::remove_reference<T>::type>::type>::value,
-      "Parameter type passed to callback() does not match");
-    if (m_prev_timestamp >= data.time) {
+    const std::lock_guard<decltype(this->get_lock())> lockg(this->get_lock());
+//    static_assert(std::is_same<DataType,
+//      typename std::remove_cv<typename std::remove_reference<T>::type>::type>::value,
+//      "Parameter type passed to callback() does not match");
+    if (m_prev_timestamp >= data->time) {
       throw std::runtime_error(
               "Data consistency violated. Received sample with not strictly older timestamp");
     }
 
     if (m_ec.roundtrip_mode() == ExperimentConfiguration::RoundTripMode::RELAY) {
       unlock();
-      publish(data, std::chrono::nanoseconds(data.time));
+      *m_data_copy = *data;
+      publish(std::move(data), std::chrono::nanoseconds(data->time));
       lock();
     } else {
-      m_prev_timestamp = data.time;
-      update_lost_samples_counter(data.id);
-      add_latency_to_statistics(data.time);
+      m_prev_timestamp = data->time;
+      update_lost_samples_counter(data->id);
+      add_latency_to_statistics(data->time);
     }
     increment_received();
   }

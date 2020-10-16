@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef COMMUNICATION_ABSTRACTIONS__ROS2_WAITSET_COMMUNICATOR_HPP_
-#define COMMUNICATION_ABSTRACTIONS__ROS2_WAITSET_COMMUNICATOR_HPP_
+#ifndef COMMUNICATION_ABSTRACTIONS__ROS2_PAL_COMMUNICATOR_HPP_
+#define COMMUNICATION_ABSTRACTIONS__ROS2_PAL_COMMUNICATOR_HPP_
 
 #include <rclcpp/rclcpp.hpp>
 
@@ -47,10 +47,16 @@ public:
   /// Reads received data from ROS 2 using waitsets
   void update_subscription() override
   {
+    bool use_intra = this->m_ec.intraprocess();
     if (!m_subscription) {
+      auto options = rclcpp::SubscriptionOptions();
+      if (use_intra)
+      {
+      options.use_intra_process_comm = rclcpp::IntraProcessSetting::Enable;
+      }
       m_subscription = this->m_node->template create_subscription<DataType>(
         Topic::topic_name() + this->m_ec.sub_topic_postfix(), this->m_ROS2QOSAdapter,
-        [this](const typename DataType::SharedPtr data) {this->callback(data);});
+        [this](typename DataType::UniquePtr data) {this->callback(std::move(data));}, options);
 #ifdef PERFORMANCE_TEST_POLLING_SUBSCRIPTION_ENABLED
 
       if (this->m_ec.expected_num_pubs() > 0) {
@@ -61,16 +67,22 @@ public:
       m_waitset = std::make_unique<rclcpp::WaitSet>();
       m_waitset->add_subscription(m_subscription);
     }
-    DataType msg;
     rclcpp::MessageInfo msg_info;
     const auto wait_ret = m_waitset->wait(std::chrono::milliseconds(100));
     if (wait_ret.kind() == rclcpp::Ready) {
-      bool success = m_subscription->take(msg, msg_info);
-      const std::lock_guard<decltype(this->get_lock())> lock(this->get_lock());{
+      if (use_intra)
+      {
+        // Process intra process messages through the waitable
+        m_subscription->get_intra_process_waitable()->execute();
+      }
+      else
+      {
+        typename DataType::UniquePtr msg(new DataType());
+        bool success = m_subscription->take(*msg, msg_info);
         if (success) {
-          this->template callback(msg);
+          this->template callback(std::move(msg));
         }
-    }
+      }
   }
   }
 

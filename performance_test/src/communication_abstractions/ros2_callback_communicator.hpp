@@ -47,9 +47,14 @@ public:
   void update_subscription() override
   {
     if (!m_subscription) {
+      auto options = rclcpp::SubscriptionOptions();
+      if (this->m_ec.intraprocess())
+      {
+        options.use_intra_process_comm = rclcpp::IntraProcessSetting::Enable;
+      }
       m_subscription = this->m_node->template create_subscription<DataType>(
         Topic::topic_name() + this->m_ec.sub_topic_postfix(), this->m_ROS2QOSAdapter,
-        [this](const typename DataType::SharedPtr data) {this->callback(data);});
+        [this](typename DataType::UniquePtr data) {this->callback(std::move(data));}, options);
 #ifdef PERFORMANCE_TEST_POLLING_SUBSCRIPTION_ENABLED
       if (this->m_ec.expected_num_pubs() > 0) {
         m_subscription->wait_for_matched(this->m_ec.expected_num_pubs(),
@@ -57,9 +62,7 @@ public:
       }
 #endif
     }
-    this->lock();
     m_executor.spin_once(std::chrono::milliseconds(100));
-    this->unlock();
   }
 
 private:

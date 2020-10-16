@@ -139,8 +139,6 @@ private:
   /// The function running inside the thread doing all the work.
   void thread_function()
   {
-    auto data = std::make_unique<typename TCommunicator::DataType>();
-
     auto next_run = std::chrono::steady_clock::now() +
       std::chrono::duration_cast<std::chrono::nanoseconds>(
       std::chrono::duration<double>(1.0 / m_ec.rate()));
@@ -148,21 +146,28 @@ private:
     auto first_run = std::chrono::steady_clock::now();
 
     std::size_t loop_counter = 1;
-    static std::mutex mutex;
-    static std::condition_variable cvar;
-
+//    static std::mutex mutex;
+//    static std::condition_variable cvar;
+    static std::atomic<bool> msg_check{false};
+    msg_check = false;
     while (m_run) {
+      auto data = std::make_unique<typename TCommunicator::DataType>();
       auto begin = std::chrono::steady_clock::now();
       {
-        std::unique_lock<std::mutex> guard(mutex, std::defer_lock);
+//        std::unique_lock<std::mutex> guard(mutex, std::defer_lock);
         if (m_ec.sequential())
         {
           // Just lock in sequential
-          guard.lock();
+//          guard.lock();
         }
         if (m_run_type == RunType::PUBLISHER &&
         m_ec.roundtrip_mode() != ExperimentConfiguration::RoundTripMode::RELAY)
       {
+          if (m_ec.sequential())
+          {
+            while (msg_check)
+            {}
+          }
 #if defined(QNX)
         std::uint64_t clk_cyc = ClockCycles();
         data->time = static_cast<std::int64_t>(clk_cyc);
@@ -170,17 +175,21 @@ private:
         std::chrono::nanoseconds epoc_time =
           std::chrono::steady_clock::now().time_since_epoch();
         begin = std::chrono::steady_clock::now();
-        m_com.publish(*data, epoc_time);
-        cvar.notify_one();
+        m_com.publish(std::move(data), epoc_time);
+//        cvar.notify_one();
+        msg_check = true;
       }
       if (m_run_type == RunType::SUBSCRIBER) {
         if (m_ec.sequential())
         {
-          cvar.wait(guard);
+//          cvar.wait(guard);
+          while (!msg_check)
+          {}
         }
         // We only want time to count from here
         begin = std::chrono::steady_clock::now();
         m_com.update_subscription();
+        msg_check = false;
       }
       }
       const std::chrono::nanoseconds reserve = next_run - std::chrono::steady_clock::now();
@@ -189,6 +198,7 @@ private:
         // We track here how much time (can also be negative) was left for the loop iteration given
         // the desired loop rate.
         if (m_run_type == RunType::PUBLISHER) {
+
 //          m_time_reserve_statistics.add_sample(std::chrono::duration<double>(reserve).count());
             m_time_reserve_statistics.add_sample(std::chrono::duration<double>(used_time).count());
 
