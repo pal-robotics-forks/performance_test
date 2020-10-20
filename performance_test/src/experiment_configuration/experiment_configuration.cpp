@@ -575,7 +575,23 @@ void ExperimentConfiguration::open_file()
   auto t = std::time(nullptr);
   auto tm = *std::gmtime(&t);
   std::ostringstream oss;
-  oss << m_logfile.c_str() << "_" << m_topic_name << std::put_time(&tm, "_%d-%m-%Y_%H-%M-%S");
+  oss << m_topic_name << "_";
+  switch (com_mean())
+    {
+    case CommunicationMean::ROS2:
+      oss << "ROS2_" << rmw_implementation() << "_";
+      break;
+    case CommunicationMean::ROS2PALPollingSubscription:
+      oss << "ROS2Polling_" << rmw_implementation() << "_";
+      break;
+    case CommunicationMean::Orocos:
+      oss << "Orocos_" << "_";
+      break;
+  }
+  oss << (intraprocess() ? "intraprocess" : "no-intraprocess") << "_";
+  oss << (sequential() ? "sequential" : "no-sequential") << "_";
+  oss << (is_rt_init_required() ? "RT" : "No-RT") << "_";
+  oss << std::put_time(&tm, "%d-%m-%Y_%H-%M-%S");
   m_final_logfile_name = oss.str();
   m_os.open(m_final_logfile_name, std::ofstream::out);
 }
