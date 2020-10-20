@@ -113,7 +113,7 @@ def create_layout(header, dataframe):
             create_kv(header, 'Communication mean'),
         ],
         'figures': generate_figures(
-            xaxis,
+            None, #xaxis,
             y11,
             y12,
             y13,
