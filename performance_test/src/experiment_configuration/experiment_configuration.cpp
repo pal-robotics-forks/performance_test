@@ -592,6 +592,7 @@ void ExperimentConfiguration::open_file()
   oss << (sequential() ? "sequential" : "no-sequential") << "_";
   oss << (is_rt_init_required() ? "RT" : "No-RT") << "_";
   oss << std::put_time(&tm, "%d-%m-%Y_%H-%M-%S");
+  oss << ".csv";
   m_final_logfile_name = oss.str();
   m_os.open(m_final_logfile_name, std::ofstream::out);
 }
