@@ -14,7 +14,9 @@
 
 #ifndef COMMUNICATION_ABSTRACTIONS__OROCOS_COMMUNICATOR_HPP_
 #define COMMUNICATION_ABSTRACTIONS__OROCOS_COMMUNICATOR_HPP_
-
+#define ORO_MEMORY_POOL 1
+#include <rtt/os/tlsf/tlsf.h>
+#include <tlsf_cpp/tlsf.hpp>
 #include <rclcpp/rclcpp.hpp>
 
 #include <atomic>
@@ -22,14 +24,14 @@
 #include <mutex>
 #include <thread>
 
-#include "../experiment_configuration/topics.hpp"
-#include "../experiment_configuration/qos_abstraction.hpp"
 #include <rclcpp/wait_set.hpp>
-#include "communicator.hpp"
-#include "resource_manager.hpp"
 
 #include <rtt/InputPort.hpp>
 #include <rtt/OutputPort.hpp>
+#include "../experiment_configuration/topics.hpp"
+#include "communicator.hpp"
+#include "resource_manager.hpp"
+#include "../experiment_configuration/qos_abstraction.hpp"
 namespace performance_test
 {
 
@@ -80,7 +82,7 @@ public:
     unlock();
     m_output_port->write(data);
   }
-  void publish(std::unique_ptr<DataType> data, const std::chrono::nanoseconds time)
+  void publish(typename Topic::MessageUniquePtr data, const std::chrono::nanoseconds time)
   {
     publish(*data, time);
   }

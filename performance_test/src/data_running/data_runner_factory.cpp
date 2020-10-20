@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "../communication_abstractions/orocos_rtt_communicator.hpp"
 #include "data_runner_factory.hpp"
 
 #include <performance_test/for_each.hpp>
@@ -19,7 +20,6 @@
 #include <string>
 #include <memory>
 
-//#include "../communication_abstractions/orocos_rtt_communicator.hpp"
 #ifdef PERFORMANCE_TEST_CALLBACK_EXECUTOR_ENABLED
   #include "../communication_abstractions/ros2_callback_communicator.hpp"
 #endif
@@ -72,9 +72,9 @@ std::shared_ptr<DataRunnerBase> DataRunnerFactory::get(
         if (com_mean == CommunicationMean::ROS2PALPollingSubscription) {
           ptr = std::make_shared<DataRunner<ROS2PALWaitsetCommunicator<T>>>(run_type);
         }
-//        if (com_mean == CommunicationMean::Orocos) {
-//          ptr = std::make_shared<DataRunner<OrocosCommunicator<T>>>(run_type);
-//        }
+        if (com_mean == CommunicationMean::Orocos) {
+          ptr = std::make_shared<DataRunner<OrocosCommunicator<T>>>(run_type);
+        }
 #ifdef PERFORMANCE_TEST_POLLING_SUBSCRIPTION_ENABLED
         if (com_mean == CommunicationMean::ROS2PollingSubscription) {
           ptr = std::make_shared<DataRunner<ROS2WaitsetCommunicator<T>>>(run_type);

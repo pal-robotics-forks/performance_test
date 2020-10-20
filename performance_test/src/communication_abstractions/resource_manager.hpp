@@ -50,7 +50,8 @@
 #include <mutex>
 
 #include "../experiment_configuration/experiment_configuration.hpp"
-
+#define ORO_MEMORY_POOL 1
+#include <rtt/os/tlsf/tlsf.h>
 #include <tlsf_cpp/tlsf.hpp>
 
 namespace performance_test
