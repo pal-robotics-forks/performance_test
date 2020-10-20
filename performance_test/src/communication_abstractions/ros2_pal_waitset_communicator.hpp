@@ -85,8 +85,20 @@ public:
       }
       else
       {
-        typename Topic::MessageUniquePtr msg(new DataType());
+        using MessageAllocTraits =
+          rclcpp::allocator::AllocRebind<DataType, TLSFAllocator<void>>;
+        using MessageAlloc = typename MessageAllocTraits::allocator_type;
+        using MessageDeleter = rclcpp::allocator::Deleter<MessageAlloc, DataType>;
+        using MessageUniquePtr = std::unique_ptr<DataType, MessageDeleter>;
+        MessageDeleter message_deleter;
+        MessageAlloc message_alloc = *ResourceManager::get().get_allocator();
+        auto ptr = MessageAllocTraits::allocate(message_alloc, 1);
+        MessageAllocTraits::construct(message_alloc, ptr);
+        MessageUniquePtr msg(ptr, message_deleter);
+        rclcpp::allocator::set_allocator_for_deleter(&message_deleter, &message_alloc);
+
         bool success = m_subscription->take(*msg, msg_info);
+
         if (success) {
           this->template callback(std::move(msg));
         }
