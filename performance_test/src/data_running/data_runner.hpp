@@ -160,7 +160,8 @@ private:
 //    static std::mutex mutex;
 //    static std::condition_variable cvar;
     static std::atomic<bool> msg_check{false};
-    msg_check = false;
+    static std::atomic<bool> publisher_started{false};
+
     while (m_run) {
 //      auto data = std::make_unique<typename TCommunicator::DataType>();
       auto ptr = MessageAllocTraits::allocate(message_alloc, 1);
@@ -179,6 +180,7 @@ private:
       {
           if (m_ec.sequential())
           {
+            publisher_started = true;
             while (msg_check)
             {}
           }
@@ -197,7 +199,7 @@ private:
         if (m_ec.sequential())
         {
 //          cvar.wait(guard);
-          while (!msg_check)
+          while (!msg_check || !publisher_started)
           {}
         }
         // We only want time to count from here
