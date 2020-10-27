@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "../communication_abstractions/orocos_rtt_communicator.hpp"
+#include "../communication_abstractions/buffer_communication.hpp"
 #include "data_runner_factory.hpp"
 
 #include <performance_test/for_each.hpp>
@@ -74,6 +75,9 @@ std::shared_ptr<DataRunnerBase> DataRunnerFactory::get(
         }
         if (com_mean == CommunicationMean::Orocos) {
           ptr = std::make_shared<DataRunner<OrocosCommunicator<T>>>(run_type);
+        }
+        if (com_mean == CommunicationMean::Buffer) {
+          ptr = std::make_shared<DataRunner<BufferCommunicator<T>>>(run_type);
         }
 #ifdef PERFORMANCE_TEST_POLLING_SUBSCRIPTION_ENABLED
         if (com_mean == CommunicationMean::ROS2PollingSubscription) {

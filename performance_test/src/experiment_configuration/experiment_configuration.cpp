@@ -77,7 +77,7 @@ void ExperimentConfiguration::setup(int argc, char ** argv)
     "The rate data should be published. Defaults to 1000 Hz. 0 means publish as fast as possible.")(
     "communication,c", po::value<std::string>()->required(),
     "Communication plugin to use (ROS2, FastRTPS, ConnextDDSMicro, CycloneDDS, OpenDDS, "
-    "ROS2PALPollingSubscription, ROS2PollingSubscription, Orocos)")(
+    "ROS2PALPollingSubscription, ROS2PollingSubscription, Orocos, Buffer)")(
     "topic,t",
     po::value<std::string>()->required(),
     "Topic to use. Use --topic_list to get a list.")("topic_list",
@@ -176,6 +176,8 @@ void ExperimentConfiguration::setup(int argc, char ** argv)
       m_com_mean = CommunicationMean::ROS2PALPollingSubscription;
     }else if (vm["communication"].as<std::string>() == "Orocos") {
       m_com_mean = CommunicationMean::Orocos;
+    }else if (vm["communication"].as<std::string>() == "Buffer") {
+      m_com_mean = CommunicationMean::Buffer;
 #ifdef PERFORMANCE_TEST_ODB_FOR_SQL_ENABLED
       m_com_mean_str = "ROS2PollingSubscription";
 #endif
@@ -586,6 +588,9 @@ void ExperimentConfiguration::open_file()
       break;
     case CommunicationMean::Orocos:
       oss << "Orocos_" << "_";
+      break;
+    case CommunicationMean::Buffer:
+      oss << "Buffer_" << "_";
       break;
   }
   oss << (intraprocess() ? "intraprocess" : "no-intraprocess") << "_";

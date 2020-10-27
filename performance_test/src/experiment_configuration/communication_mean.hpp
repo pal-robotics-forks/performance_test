@@ -25,7 +25,8 @@ enum class CommunicationMean
 {
   ROS2,
   ROS2PALPollingSubscription,
-  Orocos
+  Orocos,
+  Buffer
 #ifdef PERFORMANCE_TEST_POLLING_SUBSCRIPTION_ENABLED
   , ROS2PollingSubscription
 #endif
@@ -54,6 +55,8 @@ inline std::ostream & operator<<(std::ostream & stream, const CommunicationMean 
     return stream << "ROS2PALPollingSubscription";
   } else if (cm == CommunicationMean::Orocos) {
     return stream << "Orocos";
+  } else if (cm == CommunicationMean::Buffer) {
+    return stream << "Buffer";
 #ifdef PERFORMANCE_TEST_POLLING_SUBSCRIPTION_ENABLED
   } else if (cm == CommunicationMean::ROS2PollingSubscription) {
     return stream << "ROS2PollingSubscription";
