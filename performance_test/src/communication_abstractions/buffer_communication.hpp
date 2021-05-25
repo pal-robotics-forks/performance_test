@@ -74,7 +74,7 @@ public:
     data->time = time.count();
     increment_sent();  // We increment before publishing so we don't have to lock twice.
     unlock();
-    m_buffer.push_back() = std::shared_ptr<DataType>(std::move(data));
+    m_buffer.push_back(std::shared_ptr<DataType>(std::move(data)));
   }
   void publish(const DataType & data, const std::chrono::nanoseconds time)
   {
@@ -85,8 +85,7 @@ public:
   /// Reads received data from ROS 2 using waitsets
   void update_subscription()
   {
-    std::shared_ptr<DataType> msg = m_buffer.front();
-    m_buffer.pop_front();
+    std::shared_ptr<DataType> msg = m_buffer.pop_front();
     if (msg.get()) {
       this->template callback(*msg);
     }

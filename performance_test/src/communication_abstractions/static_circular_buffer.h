@@ -95,7 +95,7 @@ public:
 
   T& front()
   {
-    if (!full_ && (begin_iterator_ == end_iterator_))
+    if (!full_ && (begin_iterator_ == end_iterator_))  [[unlikely]]
       throw std::runtime_error("Buffer is empty");
     return *begin_iterator_;
   }
@@ -110,27 +110,44 @@ public:
   {
 
     auto old_it = end_iterator_;
-    if (full_)
+    if (full_) [[unlikely]]
       advance(begin_iterator_);
     advance(end_iterator_);
 
     // Buffer at max capacity
-    if (end_iterator_ == begin_iterator_)
+    if (end_iterator_ == begin_iterator_) [[unlikely]]
     {
       full_ = true;
     }
     return *old_it;
   }
 
+  void push_back(const T& value)
+  {
+    auto old_it = end_iterator_;
+    if (full_) [[unlikely]]
+    advance(begin_iterator_);
+    advance(end_iterator_);
+
+    // Buffer at max capacity
+    if (end_iterator_ == begin_iterator_) [[unlikely]]
+      {
+        full_ = true;
+      }
+    *old_it = value;
+  }
+
   /**
    * @brief pop_front Reduces buffer size by one, advancing the begin iterator
    */
-  void pop_front()
+  T pop_front()
   {
-   if (!full_ && (begin_iterator_ == end_iterator_))
+   if (!full_ && (begin_iterator_ == end_iterator_))  [[unlikely]]
      throw std::runtime_error("Buffer is empty");
+    T value = *begin_iterator_;
     advance(begin_iterator_);
     full_ = false;
+    return value;
   }
 
   /**
@@ -149,7 +166,7 @@ private:
     for (size_t i = 0; i < distance; ++i)
     {
       it++;
-      if (it == buffer_.end())
+      if (it == buffer_.end())  [[unlikely]]
         it = buffer_.begin();
     }
   }

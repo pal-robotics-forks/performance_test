@@ -22,8 +22,8 @@ include(compile_options)
 set(OPTIONAL_AMENT_DEPENDENCES)
 set(OPTIONAL_LIBRARIES)
 
-# Default to C++14
-set(CMAKE_CXX_STANDARD 14)
+# Default to C++20
+set(CMAKE_CXX_STANDARD 20)
 find_package(Boost COMPONENTS program_options timer REQUIRED)
 find_package(ament_cmake REQUIRED)
 
